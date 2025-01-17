@@ -12,11 +12,6 @@ username = "+4748456975"
 password = "TB-bt1a@"
 group_id = "8D0C460783EB466B98AF0C3980163A34"
 
-# In-memory storage for the generated groups
-state = {
-    "groups": None,  # Stores the current groups
-}
-
 
 # Helper Functions
 async def get_all_members(next_training):
@@ -83,18 +78,6 @@ async def split_into_random(sim_amount, attendies):
 @app.get("/")
 async def root():
     return {"message": "Spond API is running!"}
-
-
-@app.get("/get-groups/")
-async def get_groups():
-    """
-    Fetch the current groups without regenerating them.
-    """
-    if state["groups"] is None:
-        raise HTTPException(
-            status_code=404, detail="No groups have been generated yet."
-        )
-    return {"groups": state["groups"]}
 
 
 @app.get("/generate-random-groups/")
