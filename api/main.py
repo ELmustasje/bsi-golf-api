@@ -97,11 +97,8 @@ async def get_groups():
     return {"groups": state["groups"]}
 
 
-@app.post("/generate-random-groups/")
+@app.get("/generate-random-groups/")
 async def generate_random_groups(sim_amount: int):
-    """
-    Generate new random groups and store them in memory.
-    """
     # Initialize Spond session
     s = spond.Spond(username=username, password=password)
 
@@ -117,6 +114,7 @@ async def generate_random_groups(sim_amount: int):
     attendies = await all_attendies(next_training)
     groups = await split_into_random(sim_amount, attendies)
 
-    # Save groups in the state
-    state["groups"] = groups
-    return {"message": "Groups generated successfully.", "groups": groups}
+    # Store the groups for later retrieval
+    app.state.groups = groups
+
+    return {"groups": groups}
