@@ -130,10 +130,11 @@ async def get_date():
             status_code=404, detail="No upcoming events found.")
 
     next_training = events[0]
-    # parsed_datetime = datetime.datetime.strptime(
-    #     raw_datetime, "%Y-%m-%dT%H:%M:%SZ")
+    iso_datetime = next_training["startTimestamp"]
+    parsed_datetime = datetime.datetime.strptime(
+        iso_datetime, "%Y-%m-%dT%H:%M:%SZ")
 
-    return {"date": next_training}
+    return {"date": parsed_datetime}
 
 
 @app.get("/groups/")
