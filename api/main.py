@@ -133,7 +133,7 @@ async def get_date():
     # parsed_datetime = datetime.datetime.strptime(
     #     raw_datetime, "%Y-%m-%dT%H:%M:%SZ")
 
-    return {"date": next_training}
+    return {"date": next_training["owners"]}
 
 
 @app.get("/groups/")
