@@ -130,7 +130,7 @@ async def get_week():
             status_code=404, detail="No upcoming events found.")
 
     next_training = events[0]
-    print(next_training)
+    return {"week": next_training}
 
 
 @app.get("/groups/")
