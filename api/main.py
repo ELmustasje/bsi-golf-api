@@ -131,7 +131,8 @@ async def get_date():
 
     next_training = events[0]
     iso_datetime = next_training["startTimestamp"]
-    parsed_datetime = datetime.datetime.strptime(iso_datetime, "%Y-%m-%d")
+    parsed_datetime = datetime.datetime.strptime(
+        iso_datetime, "%Y-%m-%dT%H:%M:%SZ")
 
     return {"date": parsed_datetime}
 
