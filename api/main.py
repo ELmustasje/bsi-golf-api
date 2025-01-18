@@ -117,7 +117,7 @@ async def generate_random_groups(sim_amount: int):
     return {"groups": groups}
 
 
-@app.get("/get_date")
+@app.get("/get-date")
 async def get_date():
     s = spond.Spond(username=username, password=password)
 
@@ -130,11 +130,10 @@ async def get_date():
             status_code=404, detail="No upcoming events found.")
 
     next_training = events[0]
-    raw_datetime = next_training["owners"]["startTimestamp"]
     # parsed_datetime = datetime.datetime.strptime(
     #     raw_datetime, "%Y-%m-%dT%H:%M:%SZ")
 
-    return {"date": next_training["owners"]}
+    return {"date": next_training}
 
 
 @app.get("/groups/")
