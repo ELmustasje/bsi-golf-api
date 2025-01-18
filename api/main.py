@@ -133,8 +133,8 @@ async def get_date():
     iso_datetime = next_training["startTimestamp"]
     parsed_datetime = datetime.datetime.strptime(
         iso_datetime, "%Y-%m-%dT%H:%M:%SZ")
-
-    return {"date": parsed_datetime}
+    formatted_date = parsed_datetime.strftime("%d, %m, %Y")
+    return {"date": formatted_date}
 
 
 @app.get("/groups/")
