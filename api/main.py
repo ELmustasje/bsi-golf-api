@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import random
 from spond import spond
@@ -6,6 +7,16 @@ import datetime
 
 # FastAPI instance
 app = FastAPI()
+
+# CORS Configuration
+app.add_middleware(
+    CORSMiddleware,
+    # Replace "*" with specific domains for better security
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Credentials
 username = "+4748456975"
