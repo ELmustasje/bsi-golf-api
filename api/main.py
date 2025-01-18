@@ -117,6 +117,22 @@ async def generate_random_groups(sim_amount: int):
     return {"groups": groups}
 
 
+@app.get("/week")
+async def get_week():
+    s = spond.Spond(username=username, password=password)
+
+    # Fetch events
+    today = datetime.datetime.now()
+    events = await s.get_events(group_id=group_id, min_start=today)
+
+    if not events:
+        raise HTTPException(
+            status_code=404, detail="No upcoming events found.")
+
+    next_training = events[0]
+    print(next_training)
+
+
 @app.get("/groups/")
 async def get_groups():
     if app.state.groups is None:
