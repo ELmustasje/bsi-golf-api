@@ -130,11 +130,28 @@ async def get_date():
             status_code=404, detail="No upcoming events found.")
 
     next_training = events[0]
-    raw_datetime = next_training["owners"]["startTimestamp"]
-    parsed_datetime = datetime.datetime.strptime(
-        raw_datetime, "%Y-%m-%dT%H:%M:%SZ")
 
-    return {"date": parsed_datetime}
+    # Debugging: Print the structure of next_training
+    print(next_training)  # Check what "next_training" contains
+
+    # Safely access the timestamp
+    raw_datetime = next_training.get("owners", {}).get("startTimestamp")
+    if not raw_datetime:
+        raise HTTPException(
+            status_code=500,
+            detail="startTimestamp not found in next_training['owners']",
+        )
+
+    # Parse the datetime string
+    try:
+        parsed_datetime = datetime.datetime.strptime(
+            raw_datetime, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error parsing startTimestamp: {e}"
+        )
+
+    return {"date": parsed_datetime.date().isoformat()}
 
 
 @app.get("/groups/")
