@@ -1,4 +1,6 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+from asyncio import Lock
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import random
@@ -59,8 +61,7 @@ async def get_flex_memebers(next_training):
 async def get_fixed_members(next_training):
     member_dict = await get_all_members(next_training)
     flex_list = await get_flex_memebers(next_training)
-    players = [member for member in member_dict.keys()
-               if member not in flex_list]
+    players = [member for member in member_dict.keys() if member not in flex_list]
     return players
 
 
@@ -94,27 +95,27 @@ async def root():
     return {"message": "Spond API is running!"}
 
 
+lock = Lock()
+
+
 @app.get("/generate-random-groups/")
 async def generate_random_groups(sim_amount: int):
-    # Initialize Spond session
-    s = spond.Spond(username=username, password=password)
+    async with lock:
+        s = spond.Spond(username=username, password=password)
+        today = datetime.datetime.now()
+        events = await s.get_events(group_id=group_id, min_start=today)
 
-    # Fetch events
-    today = datetime.datetime.now()
-    events = await s.get_events(group_id=group_id, min_start=today)
+        if not events:
+            raise HTTPException(status_code=404, detail="No upcoming events found.")
 
-    if not events:
-        raise HTTPException(
-            status_code=404, detail="No upcoming events found.")
+        next_training = events[0]
+        attendies = await all_attendies(next_training)
+        groups = await split_into_random(sim_amount, attendies)
 
-    next_training = events[0]
-    attendies = await all_attendies(next_training)
-    groups = await split_into_random(sim_amount, attendies)
+        app.state.groups = groups
+        app.state.generated_at = datetime.datetime.now().isoformat()
 
-    # Store the groups for later retrieval
-    app.state.groups = groups
-
-    return {"groups": groups}
+        return {"groups": groups}
 
 
 @app.get("/get-date")
@@ -126,13 +127,11 @@ async def get_date():
     events = await s.get_events(group_id=group_id, min_start=today)
 
     if not events:
-        raise HTTPException(
-            status_code=404, detail="No upcoming events found.")
+        raise HTTPException(status_code=404, detail="No upcoming events found.")
 
     next_training = events[0]
     iso_datetime = next_training["startTimestamp"]
-    parsed_datetime = datetime.datetime.strptime(
-        iso_datetime, "%Y-%m-%dT%H:%M:%SZ")
+    parsed_datetime = datetime.datetime.strptime(iso_datetime, "%Y-%m-%dT%H:%M:%SZ")
     formatted_date = parsed_datetime.strftime("%d.%m.%Y")
     return {"date": formatted_date}
 
@@ -141,4 +140,7 @@ async def get_date():
 async def get_groups():
     if app.state.groups is None:
         raise HTTPException(status_code=404, detail="No groups generated yet.")
-    return {"groups": app.state.groups}
+    return JSONResponse(
+        content={"groups": app.state.groups},
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
+    )
