@@ -117,8 +117,8 @@ async def generate_random_groups(sim_amount: int):
     return {"groups": groups}
 
 
-@app.get("/date")
-async def get_week():
+@app.get("/get_date")
+async def get_date():
     s = spond.Spond(username=username, password=password)
 
     # Fetch events
