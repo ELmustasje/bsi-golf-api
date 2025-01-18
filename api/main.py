@@ -23,6 +23,9 @@ username = "+4748456975"
 password = "TB-bt1a@"
 group_id = "8D0C460783EB466B98AF0C3980163A34"
 
+# Initialize stored groups
+app.state.groups = None
+
 
 # Helper Functions
 async def get_all_members(next_training):
@@ -112,3 +115,10 @@ async def generate_random_groups(sim_amount: int):
     app.state.groups = groups
 
     return {"groups": groups}
+
+
+@app.get("/groups/")
+async def get_groups():
+    if app.state.groups is None:
+        raise HTTPException(status_code=404, detail="No groups generated yet.")
+    return {"groups": app.state.groups}
