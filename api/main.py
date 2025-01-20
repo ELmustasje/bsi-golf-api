@@ -6,6 +6,11 @@ import asyncio
 import random
 from spond import spond
 import datetime
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env
+load_dotenv()
 
 # FastAPI instance
 app = FastAPI()
@@ -20,16 +25,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Credentials
-username = "+4748456975"
-password = "TB-bt1a@"
-group_id = "8D0C460783EB466B98AF0C3980163A34"
+# Credentials from environment variables
+username = os.getenv("SPOND_USERNAME")
+password = os.getenv("SPOND_PASSWORD")
+group_id = os.getenv("SPOND_GROUP_ID")
 
 # Initialize stored groups
 app.state.groups = None
 
-
 # Helper Functions
+
+
 async def get_all_members(next_training):
     member_dict = {}
     try:
