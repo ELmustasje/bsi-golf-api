@@ -9,8 +9,9 @@ import datetime
 from dotenv import load_dotenv
 import os
 
-# Load environment variables from .env
-load_dotenv()
+# Load environment variables in local development
+if os.getenv("VERCEL_ENV") is None:  # VERCEL_ENV is automatically set in production
+    load_dotenv()
 
 # FastAPI instance
 app = FastAPI()
@@ -29,6 +30,12 @@ app.add_middleware(
 username = os.getenv("SPOND_USERNAME")
 password = os.getenv("SPOND_PASSWORD")
 group_id = os.getenv("SPOND_GROUP_ID")
+
+# Check for missing environment variables
+if not username or not password or not group_id:
+    raise RuntimeError(
+        "Missing required environment variables: SPOND_USERNAME, SPOND_PASSWORD, SPOND_GROUP_ID"
+    )
 
 # Initialize stored groups
 app.state.groups = None
