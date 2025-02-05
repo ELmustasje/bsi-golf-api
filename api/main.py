@@ -63,7 +63,6 @@ async def get_all_members(next_training):
 
 async def get_flex_attendiance(next_training):
     attending = next_training.get("responses", {}).get("acceptedIds", [])
-    logging.info(next_training.get("responses", {}))
     return attending
 
 
@@ -85,6 +84,7 @@ async def get_fixed_members(next_training):
 
 
 async def all_attendies(next_training):
+    logging.info(next_training)
     fixed_members = await get_fixed_members(next_training)
     flex_members = await get_flex_attendiance(next_training)
     members_dict = await get_all_members(next_training)
