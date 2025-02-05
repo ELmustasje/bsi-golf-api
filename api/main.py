@@ -63,6 +63,7 @@ async def get_all_members(next_training):
 
 async def get_flex_attendiance(next_training):
     attending = next_training.get("responses", {}).get("acceptedIds", [])
+    logging.info(attending)
     return attending
 
 
@@ -122,7 +123,6 @@ async def generate_random_groups(sim_amount: int):
         s = spond.Spond(username=username, password=password)
         today = datetime.datetime.now()
         events = await s.get_events(group_id=group_id, min_start=today)
-        logging.info(events)
         if not events:
             raise HTTPException(
                 status_code=404, detail="No upcoming events found.")
