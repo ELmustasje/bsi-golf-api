@@ -76,7 +76,6 @@ async def get_fixed_members(next_training):
     flex_list = await get_flex_memebers(next_training)
     players = [member for member in member_dict.keys()
                if member not in flex_list]
-    print(players)
     return players
 
 
@@ -119,7 +118,7 @@ async def generate_random_groups(sim_amount: int):
         s = spond.Spond(username=username, password=password)
         today = datetime.datetime.now()
         events = await s.get_events(group_id=group_id, min_start=today)
-
+        print(events)
         if not events:
             raise HTTPException(
                 status_code=404, detail="No upcoming events found.")
