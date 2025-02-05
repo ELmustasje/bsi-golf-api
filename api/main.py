@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from asyncio import Lock
@@ -9,6 +10,9 @@ import datetime
 from dotenv import load_dotenv
 import os
 
+#
+# Set up logging to print to terminal
+logging.basicConfig(level=logging.INFO)
 # Load environment variables in local development
 if os.getenv("VERCEL_ENV") is None:  # VERCEL_ENV is automatically set in production
     load_dotenv()
@@ -118,7 +122,7 @@ async def generate_random_groups(sim_amount: int):
         s = spond.Spond(username=username, password=password)
         today = datetime.datetime.now()
         events = await s.get_events(group_id=group_id, min_start=today)
-        print(events)
+        logging.info(events)
         if not events:
             raise HTTPException(
                 status_code=404, detail="No upcoming events found.")
