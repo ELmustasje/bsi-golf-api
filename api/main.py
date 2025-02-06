@@ -78,13 +78,11 @@ async def get_flex_memebers(next_training):
 async def get_fixed_members(next_training):
     member_dict = await get_all_members(next_training)
     flex_list = await get_flex_memebers(next_training)
-    players = [member for member in member_dict.keys()
-               if member not in flex_list]
+    players = [member for member in member_dict.keys() if member not in flex_list]
     return players
 
 
 async def all_attendies(next_training):
-    logging.info(next_training)
     fixed_members = await get_fixed_members(next_training)
     flex_members = await get_flex_attendiance(next_training)
     members_dict = await get_all_members(next_training)
@@ -124,8 +122,7 @@ async def generate_random_groups(sim_amount: int):
         today = datetime.datetime.now()
         events = await s.get_events(group_id=group_id, min_start=today)
         if not events:
-            raise HTTPException(
-                status_code=404, detail="No upcoming events found.")
+            raise HTTPException(status_code=404, detail="No upcoming events found.")
 
         next_training = events[0]
         attendies = await all_attendies(next_training)
@@ -145,14 +142,14 @@ async def get_date():
     today = datetime.datetime.now()
     events = await s.get_events(group_id=group_id, min_start=today)
 
+    logging.info(events)
+
     if not events:
-        raise HTTPException(
-            status_code=404, detail="No upcoming events found.")
+        raise HTTPException(status_code=404, detail="No upcoming events found.")
 
     next_training = events[0]
     iso_datetime = next_training["startTimestamp"]
-    parsed_datetime = datetime.datetime.strptime(
-        iso_datetime, "%Y-%m-%dT%H:%M:%SZ")
+    parsed_datetime = datetime.datetime.strptime(iso_datetime, "%Y-%m-%dT%H:%M:%SZ")
     formatted_date = parsed_datetime.strftime("%d.%m.%Y")
     return {"date": formatted_date}
 
