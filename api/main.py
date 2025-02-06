@@ -19,12 +19,21 @@ def read_excel_files(directory):
     for filename in os.listdir(directory):
         if filename.endswith(".xlsx"):
             file_path = os.path.join(directory, filename)
-            df = pd.read_excel(file_path)
-            logging.info(df)
-            if "First Name" in df.columns and "Last Name" in df.columns:
+            # Read the "For print" sheet
+            df_print = pd.read_excel(file_path, sheet_name="For print")
+            # Read the "For import" sheet
+            df_import = pd.read_excel(file_path, sheet_name="For import")
+
+            # Extract attendees from the "For print" sheet
+            if "Navn" in df_print.columns:
+                attendees.extend(df_print["Navn"].dropna().tolist())
+
+            # Extract attendees from the "For import" sheet
+            if "Navn" in df_import.columns:
                 attendees.extend(
-                    list(zip(df["First Name"].astype(str), df["Last Name"].astype(str)))
+                    df_import[df_import["Status"] == "Kommer"]["Navn"].dropna().tolist()
                 )
+
     return attendees
 
 
