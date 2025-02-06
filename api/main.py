@@ -20,6 +20,7 @@ def read_excel_files(directory):
         if filename.endswith(".xlsx"):
             file_path = os.path.join(directory, filename)
             df = pd.read_excel(file_path)
+            logging.info(df)
             if "First Name" in df.columns and "Last Name" in df.columns:
                 attendees.extend(
                     list(zip(df["First Name"].astype(str), df["Last Name"].astype(str)))
