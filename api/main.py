@@ -40,7 +40,7 @@ def split_into_random(sim_amount, attendees):
     return groups
 
 
-@app.post("/generate-random-groups/")
+@app.get("/generate-random-groups/")
 async def generate_random_groups(sim_amount: int):
     async with lock:
         try:
