@@ -8,8 +8,6 @@ def read_excel_files(directory):
         if filename.endswith(".xlsx"):
             file_path = os.path.join(directory, filename)
 
-            # Read the "For import" sheet
-
             # Read the Excel file
             df = pd.read_excel(file_path, header=None)
 
@@ -22,7 +20,8 @@ def read_excel_files(directory):
             ].index[0]
 
             # Extract the names
-            attendees = df.iloc[start_index:end_index, 0].dropna().tolist()
+            for i in df.iloc[start_index:end_index, 0].dropna().tolist():
+                attendees.append(i)
 
     return attendees
 
