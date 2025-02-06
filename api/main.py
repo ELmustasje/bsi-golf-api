@@ -140,7 +140,7 @@ async def get_date():
 
     # Fetch events
     today = datetime.datetime.now()
-    events = await s.get_events(group_id=group_id, min_start=today)
+    events = await s.get_events(group_id=group_id)
 
     logging.info(events)
 
