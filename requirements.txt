@@ -2,3 +2,4 @@ fastapi
 uvicorn
 spond
 python-dotenv
+pandas
