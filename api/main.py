@@ -19,20 +19,22 @@ def read_excel_files(directory):
     for filename in os.listdir(directory):
         if filename.endswith(".xlsx"):
             file_path = os.path.join(directory, filename)
-            # Read the "For print" sheet
-            df_print = pd.read_excel(file_path, sheet_name="For print")
+
             # Read the "For import" sheet
-            df_import = pd.read_excel(file_path, sheet_name="For import")
 
-            # Extract attendees from the "For print" sheet
-            if "Navn" in df_print.columns:
-                attendees.extend(df_print["Navn"].dropna().tolist())
+            # Read the Excel file
+            df = pd.read_excel(file_path, header=None)
 
-            # Extract attendees from the "For import" sheet
-            if "Navn" in df_import.columns:
-                attendees.extend(
-                    df_import[df_import["Status"] == "Kommer"]["Navn"].dropna().tolist()
-                )
+            # Find the start and end indices dynamically
+            start_index = df[df[0].str.contains("Deltar", na=False)].index[0] + 2
+            # Skip the "Navn" row
+            # Stop before "Ikke svart" or "Kommer ikke"
+            end_index = df[
+                df[0].str.contains("Ikke svart|Kommer ikke", na=False)
+            ].index[0]
+
+            # Extract the names
+            attendees = df.iloc[start_index:end_index, 0].dropna().tolist()
 
     return attendees
 
