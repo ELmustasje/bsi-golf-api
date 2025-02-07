@@ -5,11 +5,22 @@ import pandas as pd
 import random
 import datetime
 import os
+from fastapi.middleware.cors import CORSMiddleware
 from asyncio import Lock
 
 logging.basicConfig(level=logging.INFO)
 
+
 app = FastAPI()
+
+# Allow all origins, methods, and headers (adjust as needed)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change this to specific domains if needed
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
 lock = Lock()
 app.state.groups = None
 
@@ -24,7 +35,8 @@ def read_excel_files(directory):
             df = pd.read_excel(file_path, header=None)
 
             # Find the start and end indices dynamically
-            start_index = df[df[0].str.contains("Deltar", na=False)].index[0] + 2
+            start_index = df[df[0].str.contains(
+                "Deltar", na=False)].index[0] + 2
             # Skip the "Navn" row
             # Stop before "Ikke svart" or "Kommer ikke"
             end_index = df[
