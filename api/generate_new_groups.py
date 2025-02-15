@@ -1,6 +1,4 @@
 import logging
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
 import pandas as pd
 import random
 import datetime
@@ -9,20 +7,6 @@ import json
 from fastapi.middleware.cors import CORSMiddleware
 from asyncio import Lock
 
-logging.basicConfig(level=logging.INFO)
-
-app = FastAPI()
-
-# Allow all origins, methods, and headers (adjust as needed)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Change this to specific domains if needed
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
-)
-
-lock = Lock()
 GROUPS_FILE = "groups.json"
 
 
@@ -74,45 +58,10 @@ def save_groups_to_file(groups):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-def read_groups_from_file():
-    """Reads groups from the JSON file."""
-    if not os.path.exists(GROUPS_FILE):
-        raise HTTPException(status_code=404, detail="Groups file not found.")
+if __name__ == "__main__":
+    directory = "./xlsx_files"  # Folder containing all Excel files
+    attendees = read_excel_files(directory)
+    groups = split_into_random(4, attendees)
 
-    try:
-        with open(GROUPS_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Error reading groups file.")
-
-
-@app.get("/generate-random-groups/")
-async def generate_random_groups(sim_amount: int):
-    """Generates random groups, saves them to a file, and returns them."""
-    async with lock:
-        try:
-            directory = "./xlsx_files"  # Folder containing all Excel files
-            attendees = read_excel_files(directory)
-            groups = split_into_random(sim_amount, attendees)
-
-            # Save to file
-            save_groups_to_file(groups)
-
-            return {"groups": groups}
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/groups/")
-async def get_groups():
-    """Reads the groups from a file and returns them."""
-    return JSONResponse(
-        content=read_groups_from_file(),
-        headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
-    )
-
-
-@app.get("/")
-async def root():
-    return {"message": "Excel-based grouping API is running!"}
+    # Save to file
+    save_groups_to_file(groups)
