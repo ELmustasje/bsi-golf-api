@@ -2,28 +2,28 @@
     "generated_at": "2025-02-15T10:01:54.477272",
     "groups": [
         [
-            "Julie Rjånes",
-            "Øyvind Øyri",
             "Eskil Trosdahl",
-            "sanne lunde"
-        ],
-        [
-            "Martin Arnesen",
-            "Steffen Synnevåg",
-            "Brynjar Gjerding",
-            "Sander Selnes"
-        ],
-        [
-            "Sander Bjørnsen",
-            "Emilie Heggen",
-            "Hanne Folvik",
-            "Silje Louise Lindøe"
-        ],
-        [
-            "Tobias Nilsen",
             "Vera Ellingsen",
+            "Silje Louise Lindøe",
+            "Sander Selnes",
+        ],
+        [
+            "Julie Rjånes",
+            "Sander Bjørnsen",
+            "Brynjar Gjerding",
+            "sanne lunde",
+        ],
+        [
             "Oda Fossdal",
-            "Emily Skeie"
+            "Emily Skeie",
+            "Emilie Heggen",
+            "Tobias Nilsen",
+        ],
+        [
+            "Hanne Folvik",
+            "Steffen Synnevåg",
+            "Martin Arnesen",
+            "Øyvind Øyri",
         ]
     ]
 }
