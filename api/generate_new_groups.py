@@ -61,7 +61,7 @@ def save_groups_to_file(groups):
 if __name__ == "__main__":
     directory = "./xlsx_files"  # Folder containing all Excel files
     attendees = read_excel_files(directory)
-    groups = split_into_random(4, attendees)
+    groups = split_into_random(2, attendees)
 
     # Save to file
     save_groups_to_file(groups)
