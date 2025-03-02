@@ -22,14 +22,17 @@ def read_excel_files(directory):
 
                 # Find the start and end indices dynamically
                 start_index = (
-                    df[df[0].astype(str).str.contains("Deltar", na=False)].index[0] + 2
+                    df[df[0].astype(str).str.contains(
+                        "Deltar", na=False)].index[0] + 2
                 )
                 end_index = df[
-                    df[0].astype(str).str.contains("Ikke svart|Kommer ikke", na=False)
+                    df[0].astype(str).str.contains(
+                        "Ikke svart|Kommer ikke", na=False)
                 ].index[0]
 
                 # Extract the names
-                attendees.extend(df.iloc[start_index:end_index, 0].dropna().tolist())
+                attendees.extend(
+                    df.iloc[start_index:end_index, 0].dropna().tolist())
             except Exception as e:
                 logging.error(f"Error reading file {filename}: {e}")
 
@@ -53,7 +56,8 @@ def split_into_random(sim_amount, attendees):
 
 def save_groups_to_file(groups):
     """Saves the groups to a JSON file."""
-    data = {"generated_at": datetime.datetime.now().isoformat(), "groups": groups}
+    data = {"generated_at": datetime.datetime.now().isoformat(),
+            "groups": groups}
     with open(GROUPS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
@@ -61,7 +65,7 @@ def save_groups_to_file(groups):
 if __name__ == "__main__":
     directory = "./xlsx_files"  # Folder containing all Excel files
     attendees = read_excel_files(directory)
-    groups = split_into_random(2, attendees)
+    groups = split_into_random(4, attendees)
 
     # Save to file
     save_groups_to_file(groups)
