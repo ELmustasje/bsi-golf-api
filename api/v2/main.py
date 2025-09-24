@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from asyncio import Lock
 
-from utils.spond import get_next_training_attendees
+from api.v2.utils.spond import get_next_training_attendees
 
 logging.basicConfig(level=logging.INFO)
 

@@ -4,3 +4,6 @@ spond
 python-dotenv
 pandas
 openpyxl
+starlette
+pydantic
+httpx
