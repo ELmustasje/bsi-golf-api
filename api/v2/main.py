@@ -1,37 +1,38 @@
-import asyncio
-import datetime
-import re
-from spond import spond
+import logging
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from asyncio import Lock
 
-username = "+4748456975"
-password = "TB-bt1a@"
-group_id = "8D0C460783EB466B98AF0C3980163A34"
+from utils.spond import get_next_training_attendees
 
+logging.basicConfig(level=logging.INFO)
 
-async def main():
-    s = spond.Spond(username=username, password=password)
-    group = await s.get_group(group_id)
-    events = await s.get_events([group_id])
+app = FastAPI()
 
-    print(events[0].keys())
-    for event in events:
-        if "Trening" in event["heading"]:
-            print(event["heading"])
-    # print(group.keys())
-    # print(group["activity"])
-    await s.clientsession.close()
+# Allow all origins, methods, and headers (adjust as needed)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change this to specific domains if needed
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
 
-
-def extract_feuture_trainings(events):
-    trainings = []
-    now = datetime.datetime.now()
-    threshold = now + datetime.timedelta(hours=12)
-    for event in events:
-        endTimeStamp = event["endTimestamp"]
-        if "Trening" in event["heading"] and endTimeStamp > threshold:
-            trainings.append(event)
-
-    return trainings
+lock = Lock()
 
 
-asyncio.run(main())
+@app.get("/attendees/")
+async def get_attendees():
+    """Reads the attendees from a file and returns them."""
+    attendees = await get_next_training_attendees()
+
+    return JSONResponse(
+        content=attendees,
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
+    )
+
+
+@app.get("/")
+async def root():
+    return {"message": "API v2 is running!"}
