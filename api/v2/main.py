@@ -31,7 +31,7 @@ async def get_attendees_from_spond():
         json.dump(attendees, f)
 
     return JSONResponse(
-        content=get_attendees(),
+        content=attendees,
         headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
     )
 
