@@ -27,7 +27,7 @@ lock = Lock()
 async def get_attendees_from_spond():
     """Reads the attendees from a file and returns them."""
     attendees = await get_next_training_attendees()
-    with open("attendees.json", "w") as f:
+    with open("./attendees.json", "w") as f:
         json.dump(attendees, f)
 
     return JSONResponse(
@@ -40,7 +40,7 @@ async def get_attendees_from_spond():
 async def get_attendees():
     """Reads the attendees from a file and returns them."""
     attendees = {}
-    with open("attendees.json", "r") as f:
+    with open("./attendees.json", "r") as f:
         attendees = json.load(f)
 
     return JSONResponse(
