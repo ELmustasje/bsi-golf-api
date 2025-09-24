@@ -1,14 +1,14 @@
 import datetime
 from spond import spond
 
-from utils.extractors import (
+from api.v2.utils.extractors import (
     extract_attendees_name,
     extract_events_in_range,
     extract_future_events,
 )
-from utils.creators import create_member_dict
+from api.v2.utils.creators import create_member_dict
 
-from utils.filters import filter_events
+from api.v2.utils.filters import filter_events
 
 username = "+4748456975"
 password = "TB-bt1a@"
