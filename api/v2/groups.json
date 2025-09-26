@@ -1,0 +1,82 @@
+[
+  {
+    "group_id": 1,
+    "members": [
+      {
+        "name": "Steffen Synnevåg"
+      },
+      {
+        "name": "Sander Bjørnsen"
+      },
+      {
+        "name": "Nina Berg-Johansen"
+      },
+      {
+        "name": "Vera Ellingsen"
+      },
+      {
+        "name": "Eline Wallum Hasselvold"
+      }
+    ]
+  },
+  {
+    "group_id": 2,
+    "members": [
+      {
+        "name": "Vebjørn Molvik Nilsen"
+      },
+      {
+        "name": "Daniel Huke"
+      },
+      {
+        "name": "Martin Arnesen"
+      },
+      {
+        "name": "Trym Misund"
+      },
+      {
+        "name": "Birk Narvestad"
+      }
+    ]
+  },
+  {
+    "group_id": 3,
+    "members": [
+      {
+        "name": "Eskil Trosdahl"
+      },
+      {
+        "name": "Julia Hauge"
+      },
+      {
+        "name": "Brynjar Gjerding"
+      },
+      {
+        "name": "Emily Skeie"
+      },
+      {
+        "name": "Sofia Macsali"
+      }
+    ]
+  },
+  {
+    "group_id": 4,
+    "members": [
+      {
+        "name": "Geir Skeie"
+      },
+      {
+        "name": "Rikard Mathias Gundersen"
+      },
+      {
+        "name": "Ingeborg Julnes Kjøll"
+      },
+      {
+        "name": "Mathias Hong"
+      },
+      {
+        "name": "Oda Fossdal"
+      }
+    ]
+  }
+]
