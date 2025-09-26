@@ -3,6 +3,7 @@ from fastapi import FastAPI, Query, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from asyncio import Lock
+import tempfile
 from pydantic import BaseModel, ValidationError
 from typing import Any, List, Optional, Tuple
 import json
@@ -34,7 +35,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-lock = Lock()
+file_lock = Lock()
+state_lock = Lock()
 
 
 # --------------------------
@@ -80,7 +82,7 @@ async def load_json_array(
             detail=f"{kind} file not found in any of: {locations}",
         )
     try:
-        async with lock:
+        async with file_lock:
             with selected_path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
         if not isinstance(data, list):
@@ -98,12 +100,19 @@ async def load_json_array(
 
 
 async def save_json(path: Path, payload: Any) -> None:
-    async with lock:
+    async with file_lock:
         # Ensure dir exists
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
+
+        # Write atomically via temporary file to avoid partially written reads
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", delete=False, dir=path.parent
+        ) as tmp:
+            json.dump(payload, tmp, ensure_ascii=False, indent=2)
+            tmp_path = Path(tmp.name)
+
+        tmp_path.replace(path)
 
 
 def shuffle_into_groups(
@@ -160,7 +169,8 @@ def find_member_position(
 @app.get("/attendeesFromSpond")
 async def get_attendees_from_spond():
     attendees = await get_next_training_attendees()
-    await save_json(ATTENDEES_PATH, attendees)
+    async with state_lock:
+        await save_json(ATTENDEES_PATH, attendees)
     return JSONResponse(
         content=attendees,
         headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
@@ -185,20 +195,22 @@ async def post_shuffle_attendees(
         ..., ge=1, description="Number of simulators / groups to create"
     ),
 ):
-    # Load attendees
-    attendees = await load_json_array(
-        ATTENDEES_PATH, "Attendees", seed_path=ATTENDEES_SEED_PATH
-    )
+    async with state_lock:
+        # Load attendees
+        attendees = await load_json_array(
+            ATTENDEES_PATH, "Attendees", seed_path=ATTENDEES_SEED_PATH
+        )
 
-    # Compute groups
-    groups_raw = shuffle_into_groups(attendees, sim_count)
-    groups_model = [
-        Group(group_id=i + 1, members=members) for i, members in enumerate(groups_raw)
-    ]
+        # Compute groups
+        groups_raw = shuffle_into_groups(attendees, sim_count)
+        groups_model = [
+            Group(group_id=i + 1, members=members)
+            for i, members in enumerate(groups_raw)
+        ]
 
-    # Persist groups to groups.json (store plain JSON, same structure as response.groups)
-    groups_payload = [g.model_dump() for g in groups_model]
-    await save_json(GROUPS_PATH, groups_payload)
+        # Persist groups to groups.json (store plain JSON, same structure as response.groups)
+        groups_payload = [g.model_dump() for g in groups_model]
+        await save_json(GROUPS_PATH, groups_payload)
 
     # Return the same groups in a typed response
     return ShuffleResponse(
@@ -210,45 +222,46 @@ async def post_shuffle_attendees(
 async def post_swap_attendees(payload: SwapRequest) -> ShuffleResponse:
     """Swap two attendees between groups and return the updated grouping."""
 
-    groups_data = await load_json_array(
-        GROUPS_PATH, "Groups", seed_path=GROUPS_SEED_PATH
-    )
-    if not groups_data:
-        raise HTTPException(
-            status_code=404, detail="No groups available to modify."
+    async with state_lock:
+        groups_data = await load_json_array(
+            GROUPS_PATH, "Groups", seed_path=GROUPS_SEED_PATH
+        )
+        if not groups_data:
+            raise HTTPException(
+                status_code=404, detail="No groups available to modify."
+            )
+
+        first_pos = find_member_position(groups_data, payload.attendee_one)
+        if first_pos is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Could not find attendee '{payload.attendee_one}' in any group.",
+            )
+
+        second_pos = find_member_position(groups_data, payload.attendee_two)
+        if second_pos is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Could not find attendee '{payload.attendee_two}' in any group.",
+            )
+
+        group_a, member_a = first_pos
+        group_b, member_b = second_pos
+
+        groups_data[group_a]["members"][member_a], groups_data[group_b]["members"][member_b] = (
+            groups_data[group_b]["members"][member_b],
+            groups_data[group_a]["members"][member_a],
         )
 
-    first_pos = find_member_position(groups_data, payload.attendee_one)
-    if first_pos is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Could not find attendee '{payload.attendee_one}' in any group.",
-        )
+        try:
+            groups_model = [Group(**group) for group in groups_data]
+        except ValidationError as exc:
+            raise HTTPException(
+                status_code=500,
+                detail="Stored group data is invalid after swap operation.",
+            ) from exc
 
-    second_pos = find_member_position(groups_data, payload.attendee_two)
-    if second_pos is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Could not find attendee '{payload.attendee_two}' in any group.",
-        )
-
-    group_a, member_a = first_pos
-    group_b, member_b = second_pos
-
-    groups_data[group_a]["members"][member_a], groups_data[group_b]["members"][member_b] = (
-        groups_data[group_b]["members"][member_b],
-        groups_data[group_a]["members"][member_a],
-    )
-
-    try:
-        groups_model = [Group(**group) for group in groups_data]
-    except ValidationError as exc:
-        raise HTTPException(
-            status_code=500,
-            detail="Stored group data is invalid after swap operation.",
-        ) from exc
-
-    await save_json(GROUPS_PATH, [group.model_dump() for group in groups_model])
+        await save_json(GROUPS_PATH, [group.model_dump() for group in groups_model])
 
     total_attendees = sum(len(group.members) for group in groups_model)
     return ShuffleResponse(
