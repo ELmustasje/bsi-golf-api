@@ -13,7 +13,7 @@ from fastapi import HTTPException
 class InMemoryDataStore:
     """Persist attendees and groups in memory with seed fallbacks."""
 
-    def __init__(self, attendees_seed: Path, groups_seed: Path) -> None:
+    def __init__(self, attendees_seed: Path, groups_seed: Path | None = None) -> None:
         self._lock = Lock()
         self._attendees_seed = attendees_seed
         self._groups_seed = groups_seed
@@ -43,7 +43,11 @@ class InMemoryDataStore:
 
         async with self._lock:
             if self._groups is None:
-                self._groups = self._load_seed(self._groups_seed, "Groups")
+                self._groups = (
+                    self._load_seed(self._groups_seed, "Groups")
+                    if self._groups_seed is not None
+                    else []
+                )
             return copy.deepcopy(self._groups)
 
     async def replace_groups(self, groups: List[Any]) -> None:
@@ -78,4 +82,4 @@ class InMemoryDataStore:
 
 
 MODULE_DIR = Path(__file__).resolve().parent
-store = InMemoryDataStore(MODULE_DIR / "attendees.json", MODULE_DIR / "groups.json")
+store = InMemoryDataStore(MODULE_DIR / "attendees.json")
