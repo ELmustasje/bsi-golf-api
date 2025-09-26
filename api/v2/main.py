@@ -258,14 +258,29 @@ async def post_swap_attendees(payload: SwapRequest) -> ShuffleResponse:
     )
 
 
-@app.get("/groups/")
-async def get_groups():
+@app.get("/groups/", response_model=ShuffleResponse)
+async def get_groups() -> JSONResponse:
     """Reads the most recently saved groups from groups.json."""
+
     groups = await load_json_array(
         GROUPS_PATH, "Groups", seed_path=GROUPS_SEED_PATH
     )
+
+    try:
+        groups_model = [Group(**group) for group in groups]
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=500, detail="Stored group data is invalid."
+        ) from exc
+
+    response_payload = ShuffleResponse(
+        sim_count=len(groups_model),
+        total_attendees=sum(len(group.members) for group in groups_model),
+        groups=groups_model,
+    )
+
     return JSONResponse(
-        content=groups,
+        content=response_payload.model_dump(),
         headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
     )
 
