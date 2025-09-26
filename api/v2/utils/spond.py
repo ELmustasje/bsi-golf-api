@@ -1,4 +1,5 @@
 import datetime
+import os
 from typing import List
 
 from fastapi import HTTPException
@@ -8,14 +9,26 @@ from api.v2.utils.creators import create_member_dict
 from api.v2.utils.extractors import extract_attendees_name, extract_events_in_range
 from api.v2.utils.filters import filter_events
 
-username = "+4748456975"
-password = "TB-bt1a@"
 group_id = "8D0C460783EB466B98AF0C3980163A34"
+
+
+def _get_credentials() -> tuple[str, str]:
+    username = os.getenv("SPOND_USERNAME")
+    password = os.getenv("SPOND_PASSWORD")
+
+    if not username or not password:
+        raise HTTPException(
+            status_code=500,
+            detail="Spond credentials are not configured.",
+        )
+
+    return username, password
 
 
 async def get_next_training_attendees() -> List[str]:
     """Fetch accepted attendees for the next upcoming training session."""
 
+    username, password = _get_credentials()
     client = spond.Spond(username=username, password=password)
     now = datetime.datetime.now(datetime.timezone.utc)
     end = now + datetime.timedelta(days=6)
