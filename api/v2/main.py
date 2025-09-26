@@ -3,8 +3,8 @@ from fastapi import FastAPI, Query, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from asyncio import Lock
-from pydantic import BaseModel
-from typing import Any, List, Dict
+from pydantic import BaseModel, ValidationError
+from typing import Any, List, Optional, Tuple
 import json
 import os
 import random
@@ -18,13 +18,13 @@ app = FastAPI()
 ATTENDEES_PATH = "./api/v2/attendees.json"
 GROUPS_PATH = "./api/v2/groups.json"
 
-# Allow all origins, methods, and headers (adjust as needed)
+# Restrict access to the production frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change this to specific domains if needed
+    allow_origins=["https://bsi-golf-side.vercel.app"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 lock = Lock()
@@ -35,7 +35,12 @@ lock = Lock()
 # --------------------------
 class Group(BaseModel):
     group_id: int
-    members: List[Dict[str, Any]]
+    members: List[Any]
+
+
+class SwapRequest(BaseModel):
+    attendee_one: str
+    attendee_two: str
 
 
 class ShuffleResponse(BaseModel):
@@ -47,10 +52,11 @@ class ShuffleResponse(BaseModel):
 # --------------------------
 # Helpers
 # --------------------------
-async def load_json_array(path: str, kind: str) -> List[Dict[str, Any]]:
+async def load_json_array(path: str, kind: str) -> List[Any]:
     if not os.path.exists(path):
-        raise HTTPException(status_code=500, detail=f"{
-                            kind} file not found: {path}")
+        raise HTTPException(
+            status_code=500, detail=f"{kind} file not found: {path}"
+        )
     try:
         async with lock:
             with open(path, "r", encoding="utf-8") as f:
@@ -77,17 +83,51 @@ async def save_json(path: str, payload: Any) -> None:
 
 
 def shuffle_into_groups(
-    attendees: List[Dict[str, Any]], sim_count: int
-) -> List[List[Dict[str, Any]]]:
+    attendees: List[Any], sim_count: int
+) -> List[List[Any]]:
     # Randomize order
     pool = attendees[:]  # copy to avoid mutating original
     random.shuffle(pool)
 
     # Balanced round-robin distribution after shuffle
-    groups: List[List[Dict[str, Any]]] = [[] for _ in range(sim_count)]
+    groups: List[List[Any]] = [[] for _ in range(sim_count)]
     for idx, person in enumerate(pool):
         groups[idx % sim_count].append(person)
     return groups
+
+
+def normalise_member_name(member: Any) -> Optional[str]:
+    """Return a trimmed string representation for a member entry."""
+
+    if isinstance(member, str):
+        return member.strip()
+    if isinstance(member, dict):
+        for key in ("name", "full_name", "fullName", "displayName"):
+            value = member.get(key)
+            if isinstance(value, str):
+                return value.strip()
+    return None
+
+
+def find_member_position(
+    groups: List[Any], attendee: str
+) -> Optional[Tuple[int, int]]:
+    """Locate the (group_index, member_index) pair for an attendee name."""
+
+    target = attendee.strip().casefold()
+    for group_index, group in enumerate(groups):
+        if not isinstance(group, dict):
+            continue
+
+        members = group.get("members", [])
+        if not isinstance(members, list):
+            continue
+
+        for member_index, member in enumerate(members):
+            name = normalise_member_name(member)
+            if name and name.casefold() == target:
+                return group_index, member_index
+    return None
 
 
 # --------------------------
@@ -135,6 +175,56 @@ async def post_shuffle_attendees(
     # Return the same groups in a typed response
     return ShuffleResponse(
         sim_count=sim_count, total_attendees=len(attendees), groups=groups_model
+    )
+
+
+@app.post("/groups/swap", response_model=ShuffleResponse)
+async def post_swap_attendees(payload: SwapRequest) -> ShuffleResponse:
+    """Swap two attendees between groups and return the updated grouping."""
+
+    groups_data = await load_json_array(GROUPS_PATH, "Groups")
+    if not groups_data:
+        raise HTTPException(
+            status_code=404, detail="No groups available to modify."
+        )
+
+    first_pos = find_member_position(groups_data, payload.attendee_one)
+    if first_pos is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Could not find attendee '{payload.attendee_one}' in any group.",
+        )
+
+    second_pos = find_member_position(groups_data, payload.attendee_two)
+    if second_pos is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Could not find attendee '{payload.attendee_two}' in any group.",
+        )
+
+    group_a, member_a = first_pos
+    group_b, member_b = second_pos
+
+    groups_data[group_a]["members"][member_a], groups_data[group_b]["members"][member_b] = (
+        groups_data[group_b]["members"][member_b],
+        groups_data[group_a]["members"][member_a],
+    )
+
+    try:
+        groups_model = [Group(**group) for group in groups_data]
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Stored group data is invalid after swap operation.",
+        ) from exc
+
+    await save_json(GROUPS_PATH, [group.model_dump() for group in groups_model])
+
+    total_attendees = sum(len(group.members) for group in groups_model)
+    return ShuffleResponse(
+        sim_count=len(groups_model),
+        total_attendees=total_attendees,
+        groups=groups_model,
     )
 
 
