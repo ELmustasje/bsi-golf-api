@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import inspect
 from typing import Any, Dict, Iterable, List
 
 
@@ -10,7 +11,12 @@ ISO_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 async def extract_future_events(s, group_id: str) -> List[Dict[str, Any]]:
     """Return events ending within the last 48 hours or in the future."""
 
-    events: Iterable[Dict[str, Any]] = await s.get_events([group_id])
+    events_result = s.get_events([group_id])
+    events: Iterable[Dict[str, Any]]
+    if inspect.isawaitable(events_result):
+        events = await events_result
+    else:
+        events = events_result
     fut_events: List[Dict[str, Any]] = []
 
     now = datetime.datetime.now(datetime.timezone.utc)
@@ -41,7 +47,12 @@ async def extract_events_in_range(
 ) -> List[Dict[str, Any]]:
     """Return events that end inside the inclusive ``start_time``/``end_time`` window."""
 
-    events: Iterable[Dict[str, Any]] = await s.get_events([group_id])
+    events_result = s.get_events([group_id])
+    events: Iterable[Dict[str, Any]]
+    if inspect.isawaitable(events_result):
+        events = await events_result
+    else:
+        events = events_result
     in_range_events: List[Dict[str, Any]] = []
 
     for event in events:
