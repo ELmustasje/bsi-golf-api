@@ -109,7 +109,7 @@ async def get_attendees_from_spond():
 
 @app.get("/attendees/")
 async def get_attendees():
-    """Return the current attendees from the in-memory store."""
+    """Return the current attendees from the PostgreSQL store."""
     attendees = await data_store.get_attendees()
     return JSONResponse(
         content=attendees,
@@ -132,7 +132,7 @@ async def post_shuffle_attendees(
         Group(group_id=i + 1, members=members) for i, members in enumerate(groups_raw)
     ]
 
-    # Persist groups in the in-memory store (same structure as response.groups)
+    # Persist groups in the PostgreSQL store (same structure as response.groups)
     groups_payload = [g.model_dump() for g in groups_model]
     await data_store.replace_groups(groups_payload)
 
@@ -194,7 +194,7 @@ async def post_swap_attendees(payload: SwapRequest) -> ShuffleResponse:
 
 @app.get("/groups/", response_model=ShuffleResponse)
 async def get_groups() -> JSONResponse:
-    """Return the most recently saved groups from the in-memory store."""
+    """Return the most recently saved groups from the PostgreSQL store."""
 
     groups = await data_store.get_groups()
 
