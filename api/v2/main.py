@@ -8,6 +8,7 @@ from typing import Any, List, Optional, Tuple
 import json
 import os
 import random
+from pathlib import Path
 
 from api.v2.utils.spond import get_next_training_attendees
 
@@ -15,8 +16,14 @@ logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
 
-ATTENDEES_PATH = "./api/v2/attendees.json"
-GROUPS_PATH = "./api/v2/groups.json"
+MODULE_DIR = Path(__file__).resolve().parent
+RUNTIME_DATA_DIR = Path(os.getenv("BSI_RUNTIME_DATA_DIR", "/tmp/bsi-golf-api"))
+
+ATTENDEES_PATH = RUNTIME_DATA_DIR / "attendees.json"
+GROUPS_PATH = RUNTIME_DATA_DIR / "groups.json"
+
+ATTENDEES_SEED_PATH = MODULE_DIR / "attendees.json"
+GROUPS_SEED_PATH = MODULE_DIR / "groups.json"
 
 # Restrict access to the production frontend
 app.add_middleware(
@@ -52,33 +59,50 @@ class ShuffleResponse(BaseModel):
 # --------------------------
 # Helpers
 # --------------------------
-async def load_json_array(path: str, kind: str) -> List[Any]:
-    if not os.path.exists(path):
+async def load_json_array(
+    path: Path, kind: str, *, seed_path: Optional[Path] = None
+) -> List[Any]:
+    candidates = [path]
+    if seed_path and seed_path not in candidates:
+        candidates.append(seed_path)
+
+    selected_path: Optional[Path] = None
+    for candidate in candidates:
+        candidate_path = Path(candidate)
+        if candidate_path.exists():
+            selected_path = candidate_path
+            break
+
+    if selected_path is None:
+        locations = ", ".join(str(Path(c)) for c in candidates)
         raise HTTPException(
-            status_code=500, detail=f"{kind} file not found: {path}"
+            status_code=500,
+            detail=f"{kind} file not found in any of: {locations}",
         )
     try:
         async with lock:
-            with open(path, "r", encoding="utf-8") as f:
+            with selected_path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
         if not isinstance(data, list):
             raise HTTPException(
                 status_code=500,
                 detail=f"{os.path.basename(
-                    path)} must be a JSON array (list).",
+                    selected_path)} must be a JSON array (list).",
             )
         return data
     except json.JSONDecodeError as e:
         raise HTTPException(
-            status_code=500, detail=f"Invalid JSON in {os.path.basename(path)}: {e}"
+            status_code=500,
+            detail=f"Invalid JSON in {os.path.basename(selected_path)}: {e}"
         )
 
 
-async def save_json(path: str, payload: Any) -> None:
+async def save_json(path: Path, payload: Any) -> None:
     async with lock:
         # Ensure dir exists
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
 
 
@@ -146,7 +170,9 @@ async def get_attendees_from_spond():
 @app.get("/attendees/")
 async def get_attendees():
     """Reads the attendees from a file and returns them."""
-    attendees = await load_json_array(ATTENDEES_PATH, "Attendees")
+    attendees = await load_json_array(
+        ATTENDEES_PATH, "Attendees", seed_path=ATTENDEES_SEED_PATH
+    )
     return JSONResponse(
         content=attendees,
         headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
@@ -160,7 +186,9 @@ async def post_shuffle_attendees(
     ),
 ):
     # Load attendees
-    attendees = await load_json_array(ATTENDEES_PATH, "Attendees")
+    attendees = await load_json_array(
+        ATTENDEES_PATH, "Attendees", seed_path=ATTENDEES_SEED_PATH
+    )
 
     # Compute groups
     groups_raw = shuffle_into_groups(attendees, sim_count)
@@ -182,7 +210,9 @@ async def post_shuffle_attendees(
 async def post_swap_attendees(payload: SwapRequest) -> ShuffleResponse:
     """Swap two attendees between groups and return the updated grouping."""
 
-    groups_data = await load_json_array(GROUPS_PATH, "Groups")
+    groups_data = await load_json_array(
+        GROUPS_PATH, "Groups", seed_path=GROUPS_SEED_PATH
+    )
     if not groups_data:
         raise HTTPException(
             status_code=404, detail="No groups available to modify."
@@ -231,7 +261,9 @@ async def post_swap_attendees(payload: SwapRequest) -> ShuffleResponse:
 @app.get("/groups/")
 async def get_groups():
     """Reads the most recently saved groups from groups.json."""
-    groups = await load_json_array(GROUPS_PATH, "Groups")
+    groups = await load_json_array(
+        GROUPS_PATH, "Groups", seed_path=GROUPS_SEED_PATH
+    )
     return JSONResponse(
         content=groups,
         headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
