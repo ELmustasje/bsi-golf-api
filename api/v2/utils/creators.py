@@ -1,10 +1,15 @@
+import inspect
 from typing import Dict, Any
 
 
 async def create_member_dict(s, group_id: str) -> Dict[str, str]:
     """Return a mapping of member id to full name for a given Spond group."""
 
-    group: Dict[str, Any] = await s.get_group(group_id)
+    group_result = s.get_group(group_id)
+    if inspect.isawaitable(group_result):
+        group: Dict[str, Any] = await group_result
+    else:
+        group = group_result
     members: Dict[str, str] = {}
 
     for member in group.get("members", []):
