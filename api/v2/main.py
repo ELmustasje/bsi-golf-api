@@ -8,7 +8,11 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 
 from api.v2.data_store import store as data_store
-from api.v2.utils.spond import get_next_training_attendees
+from api.v2.utils.spond import (
+    get_all_members,
+    get_members_not_attending_next_event,
+    get_next_training_attendees,
+)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -113,6 +117,28 @@ async def get_attendees():
     attendees = await data_store.get_attendees()
     return JSONResponse(
         content=attendees,
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
+    )
+
+
+@app.get("/members/")
+async def get_members():
+    """Return every member registered in the Spond group."""
+
+    members = await get_all_members()
+    return JSONResponse(
+        content=members,
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
+    )
+
+
+@app.get("/members/notAttendingNextEvent")
+async def get_members_not_attending():
+    """Return members who are not attending the next upcoming training event."""
+
+    members = await get_members_not_attending_next_event()
+    return JSONResponse(
+        content=members,
         headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
     )
 
